@@ -4,34 +4,18 @@ import { TechCard } from './ui/TechCard';
 import { Rocket, Flag, Globe, Wand2, Edit2, Check, Plus, X } from 'lucide-react';
 import { suggestIdeas } from '../services/geminiService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-
-const INITIAL_GOALS = [
-    "尝试AI视频, AI漫画制作",
-    "尝试3D模型资产AI流程化",
-    "发扬美术内部分享"
-];
-
-const INITIAL_CONTENT = {
-    title: '未来展望',
-    subtitle: '下一关卡 // 路线图 (ROADMAP)',
-    visionTitle: '2026 愿景',
-    visionDesc: '标准化程序化工作流程，并将生成式 AI 全面整合到资产管线中。',
-    ultimateTitle: '终极目标',
-    ultimateDesc: '健康生活，快乐工作！！！',
-    quote: '成为艺术与技术融合的行业标杆，以极致的效率交付具有丰富叙事体验的精品。'
-};
+import { DEFAULT_GOALS, DEFAULT_FUTURE_CONTENT } from '../data/defaults';
 
 export const Future: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [goals, setGoals] = useLocalStorage('future_goals_v2', INITIAL_GOALS);
+  const [goals, setGoals] = useLocalStorage('future_goals_v2', DEFAULT_GOALS);
   const [loading, setLoading] = useState(false);
-  const [content, setContent] = useLocalStorage('future_content_v2', INITIAL_CONTENT);
+  const [content, setContent] = useLocalStorage('future_content_v2', DEFAULT_FUTURE_CONTENT);
 
   const handleAISuggestion = async () => {
     setLoading(true);
     const ideas = await suggestIdeas("旨在提高效率和质量的3A游戏美术团队的未来目标");
     if (ideas && Array.isArray(ideas)) {
-        // Ensure all items are strings
         const cleanIdeas = ideas.map(item => {
             if (typeof item === 'string') return item;
             if (typeof item === 'object' && item !== null) return JSON.stringify(item);
@@ -60,10 +44,7 @@ export const Future: React.FC = () => {
       setContent(prev => ({...prev, [key]: val}));
   }
 
-  // Safety check: ensure goals is an array
-  const safeGoals = Array.isArray(goals) ? goals : INITIAL_GOALS;
-
-  // Helper
+  const safeGoals = Array.isArray(goals) ? goals : DEFAULT_GOALS;
   const safeStr = (val: any) => typeof val === 'string' ? val : String(val || '');
 
   return (
@@ -102,11 +83,9 @@ export const Future: React.FC = () => {
         </div>
 
         <div className="relative">
-            {/* Center Line */}
             <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-brand-orange to-slate-200 -translate-x-1/2 hidden md:block"></div>
 
             <div className="space-y-12">
-                {/* 2025 Vision */}
                 <div className="relative flex flex-col md:flex-row items-center justify-between gap-8 group">
                     <div className="w-full md:w-5/12 text-right">
                          {isEditing ? (
@@ -136,7 +115,6 @@ export const Future: React.FC = () => {
                          <TechCard className="bg-white">
                             <ul className="space-y-3">
                                 {safeGoals.map((goal, i) => {
-                                    // Robust check to ensure goal is a string
                                     const goalText = safeStr(typeof goal === 'object' ? JSON.stringify(goal).replace(/['"]+/g, '') : goal);
                                     
                                     return (
@@ -173,7 +151,6 @@ export const Future: React.FC = () => {
                     </div>
                 </div>
 
-                 {/* Long Term */}
                 <div className="relative flex flex-col md:flex-row-reverse items-center justify-between gap-8">
                      <div className="w-full md:w-5/12 text-left">
                         {isEditing ? (

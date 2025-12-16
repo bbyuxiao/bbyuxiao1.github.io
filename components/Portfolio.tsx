@@ -2,25 +2,10 @@
 import React, { useState, useEffect, DragEvent } from 'react';
 import { Project } from '../types';
 import { TechCard } from './ui/TechCard';
-import { Plus, Trash2, Edit2, Check, Wand2, Maximize2, X, Image as ImageIcon, ZoomIn, Upload, Type, ChevronLeft, ChevronRight, CloudUpload, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Wand2, Maximize2, X, Image as ImageIcon, ZoomIn, Upload, Type, ChevronLeft, ChevronRight, CloudUpload, Loader2, AlertTriangle } from 'lucide-react';
 import { refineText } from '../services/geminiService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-
-const INITIAL_PROJECTS: Project[] = [
-  {
-    id: 'zhen-infirmary',
-    name: '阿珍医务室 (ZHEN\'S INFIRMARY)',
-    description: '这是一个充满生活气息与叙事细节的独立场景设计。灵感来源于九龙城寨与赛博朋克的结合。重点打磨了医疗器械的做旧材质与环境光遮蔽（AO）效果，通过散落的药瓶、贴纸和暖色台灯营造出有人居住的温情与外界冷酷科技的对比。采用了 UE5 Lumen 进行实时光照渲染。',
-    descriptionSize: 'text-sm',
-    imageUrl: 'https://images.unsplash.com/photo-1519638831568-d9897f54ed69?auto=format&fit=crop&q=80&w=1000',
-    gallery: [
-        'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=800',
-        'https://images.unsplash.com/photo-1592188663002-239611649988?auto=format&fit=crop&q=80&w=800',
-        'https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?auto=format&fit=crop&q=80&w=800',
-        'https://images.unsplash.com/photo-1515462277126-2dd0c162007a?auto=format&fit=crop&q=80&w=800'
-    ]
-  }
-];
+import { DEFAULT_PROJECTS } from '../data/defaults';
 
 // Image Compression Helper
 const compressImage = (file: File): Promise<string> => {
@@ -32,7 +17,7 @@ const compressImage = (file: File): Promise<string> => {
             img.src = event.target?.result as string;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 1600; // Increased quality slightly
+                const MAX_WIDTH = 1600; 
                 const MAX_HEIGHT = 1200;
                 let width = img.width;
                 let height = img.height;
@@ -53,7 +38,6 @@ const compressImage = (file: File): Promise<string> => {
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
-                // Quality 0.8 for better visual fidelity
                 resolve(canvas.toDataURL('image/jpeg', 0.8));
             };
             img.onerror = () => {
@@ -65,19 +49,36 @@ const compressImage = (file: File): Promise<string> => {
 };
 
 export const Portfolio: React.FC = () => {
-  const [projects, setProjects] = useLocalStorage<Project[]>('portfolio_projects_v2', INITIAL_PROJECTS);
+  const [projects, setProjects] = useLocalStorage<Project[]>('portfolio_projects_v2', DEFAULT_PROJECTS);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isRefining, setIsRefining] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [isManageMode, setIsManageMode] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   // Drag and Drop State
   const [dragTarget, setDragTarget] = useState<{id: string, zone: 'cover' | 'gallery'} | null>(null);
   const [processingState, setProcessingState] = useState<{id: string, zone: 'cover' | 'gallery'} | null>(null);
 
-  const handleDelete = (id: string) => {
-    if (confirm('确定要删除这个项目吗？此操作无法撤销。')) {
-        setProjects(projects.filter(p => p.id !== id));
+  // Trigger Modal
+  const handleDelete = (e: React.MouseEvent | undefined, id: string) => {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    setDeleteConfirmId(id);
+  };
+
+  // Execute Delete
+  const executeDelete = () => {
+    if (deleteConfirmId) {
+        setProjects(prev => {
+            const updated = prev.filter(p => p.id !== deleteConfirmId);
+            return updated;
+        });
+        if (selectedProject?.id === deleteConfirmId) setSelectedProject(null);
+        setDeleteConfirmId(null);
     }
   };
 
@@ -174,9 +175,9 @@ export const Portfolio: React.FC = () => {
       imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1000',
       gallery: []
     };
-    // Add new project to the START of the list
     setProjects([newProject, ...projects]);
     setEditingId(newProject.id);
+    setIsManageMode(true);
   };
 
   // --- Image Navigation Logic ---
@@ -220,7 +221,7 @@ export const Portfolio: React.FC = () => {
   }, [fullscreenImage, selectedProject]);
 
   const safeStr = (val: any) => typeof val === 'string' ? val : String(val || '');
-  const safeProjects = Array.isArray(projects) ? projects : INITIAL_PROJECTS;
+  const safeProjects = Array.isArray(projects) ? projects : DEFAULT_PROJECTS;
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 md:p-8">
@@ -231,12 +232,24 @@ export const Portfolio: React.FC = () => {
                 </h2>
                 <p className="text-slate-500 font-mono mt-2">年度交付 // 绝密档案 (DELIVERABLES)</p>
             </div>
-            <button 
-                onClick={addNew}
-                className="bg-slate-900 text-white px-6 py-2 clip-tech hover:bg-brand-orange transition-colors flex items-center gap-2 font-bold uppercase tracking-wider shadow-lg"
-            >
-                <Plus size={18} /> 添加项目
-            </button>
+            <div className="flex items-center gap-3">
+                {isManageMode && (
+                    <button 
+                        onClick={addNew}
+                        className="bg-slate-900 text-white px-4 py-2 clip-tech hover:bg-brand-orange transition-colors flex items-center gap-2 font-bold uppercase text-xs tracking-wider shadow-lg"
+                    >
+                        <Plus size={14} /> 添加项目
+                    </button>
+                )}
+                <button 
+                    onClick={() => setIsManageMode(!isManageMode)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded font-bold uppercase text-xs tracking-wider transition-colors ${
+                        isManageMode ? 'bg-brand-orange text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                    }`}
+                >
+                    {isManageMode ? <><Check size={14}/> 完成编辑</> : <><Edit2 size={14}/> 管理内容</>}
+                </button>
+            </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -251,10 +264,21 @@ export const Portfolio: React.FC = () => {
                 return (
                 <TechCard 
                     key={project.id} 
-                    className={`h-full flex flex-col transition-all duration-300 ${editingId === project.id ? 'ring-2 ring-brand-orange shadow-2xl scale-[1.01] z-10' : 'hover:scale-[1.02] hover:shadow-2xl hover:shadow-brand-orange/15'}`}
+                    className={`h-full flex flex-col transition-all duration-300 group ${editingId === project.id ? 'ring-2 ring-brand-orange shadow-2xl scale-[1.01] z-10' : 'hover:scale-[1.02] hover:shadow-2xl hover:shadow-brand-orange/15'}`}
                 >
                     {/* Image Area */}
                     <div className="relative group/image overflow-hidden mb-4 border-b-2 border-brand-orange/20 pb-4">
+                        {/* Explicit Delete Button for Manage Mode - kept as requested in previous turn, but redundant now that bottom bar is visible */}
+                        {isManageMode && !editingId && (
+                            <button
+                                onClick={(e) => handleDelete(e, project.id)}
+                                className="absolute top-2 right-2 z-20 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg backdrop-blur-sm transition-transform hover:scale-110 flex items-center justify-center"
+                                title="删除此项目"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        )}
+
                         {editingId === project.id ? (
                             <div 
                                 className={`relative w-full h-48 bg-slate-50 flex flex-col items-center justify-center border-2 border-dashed transition-all duration-300 rounded
@@ -361,7 +385,7 @@ export const Portfolio: React.FC = () => {
                                     </div>
                                 </div>
                                 
-                                {/* Gallery Grid Layout - REDESIGNED */}
+                                {/* Gallery Grid Layout */}
                                 <div className="pt-2 mt-2 border-t border-slate-100">
                                     <div className="flex justify-between items-center mb-2">
                                         <label className="text-xs font-bold text-slate-700 flex items-center gap-2">
@@ -425,7 +449,7 @@ export const Portfolio: React.FC = () => {
 
                                 <div className="pt-4 mt-4 border-t border-slate-200 flex justify-between items-center">
                                     <button 
-                                        onClick={() => handleDelete(project.id)}
+                                        onClick={(e) => handleDelete(e, project.id)}
                                         className="text-red-400 hover:text-red-600 text-xs flex items-center gap-1 px-2 py-1 rounded hover:bg-red-50 transition-colors"
                                     >
                                         <Trash2 size={14} /> 删除项目
@@ -467,21 +491,30 @@ export const Portfolio: React.FC = () => {
                     </div>
 
                     {!editingId && (
-                        <div className="mt-4 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="mt-4 pt-2 border-t border-dashed border-slate-200 flex justify-end gap-2">
                              <button 
-                                onClick={() => setEditingId(project.id)}
-                                className="p-2 text-slate-400 hover:text-brand-orange hover:bg-slate-100 rounded-full transition-colors"
-                                title="编辑内容"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingId(project.id);
+                                }}
+                                className="flex items-center gap-1 border border-slate-300 text-slate-500 rounded-full px-3 py-1 text-xs font-bold hover:bg-brand-orange hover:text-white hover:border-brand-orange transition-colors"
                             >
-                                <Edit2 size={18} />
+                                <Edit2 size={12} />
+                                <span>编辑</span>
+                            </button>
+                             <button 
+                                onClick={(e) => handleDelete(e, project.id)}
+                                className="flex items-center gap-1 border border-slate-300 text-slate-500 rounded-full px-3 py-1 text-xs font-bold hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
+                            >
+                                <Trash2 size={12} />
+                                <span>删除</span>
                             </button>
                         </div>
                     )}
                 </TechCard>
             )})}
         </div>
-
-        {/* Project Details Modal */}
+        
         {selectedProject && (
             <div 
                 className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-slate-900/95 backdrop-blur-md animate-in fade-in duration-200"
@@ -491,13 +524,11 @@ export const Portfolio: React.FC = () => {
                     className="relative w-full max-w-6xl h-[90vh] bg-slate-900 border-2 border-brand-orange shadow-[0_0_100px_rgba(255,85,0,0.15)] flex flex-col clip-tech-inv"
                     onClick={e => e.stopPropagation()}
                 >
-                    {/* Modal Header */}
                     <div className="flex items-start justify-between p-6 border-b border-white/10 bg-black/20">
                         <div>
                             <div className="flex items-center gap-3 mb-1">
                                 <h3 className="text-3xl font-black italic uppercase text-white tracking-wide">{safeStr(selectedProject.name)}</h3>
                             </div>
-                            {/* Safer descriptionSize check */}
                             <p className={`text-slate-400 font-mono max-w-2xl ${typeof selectedProject.descriptionSize === 'string' ? selectedProject.descriptionSize : 'text-sm'}`}>{safeStr(selectedProject.description)}</p>
                         </div>
                         <button 
@@ -508,10 +539,8 @@ export const Portfolio: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Modal Content - Scrollable Grid */}
                     <div className="flex-1 overflow-y-auto p-6 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {/* Main Featured Image */}
                             <div 
                                 className="md:col-span-2 lg:col-span-2 row-span-2 relative group overflow-hidden border border-slate-700 bg-black cursor-zoom-in"
                                 onClick={() => setFullscreenImage(selectedProject.imageUrl)}
@@ -529,7 +558,6 @@ export const Portfolio: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Gallery Grid in Modal */}
                             {selectedProject.gallery?.map((img, idx) => (
                                 <div 
                                     key={idx} 
@@ -548,13 +576,11 @@ export const Portfolio: React.FC = () => {
             </div>
         )}
 
-        {/* Fullscreen Lightbox */}
         {fullscreenImage && selectedProject && (
             <div 
                 className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300"
                 onClick={() => setFullscreenImage(null)}
             >
-                {/* Controls */}
                 <button 
                     onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}
                     className="absolute top-6 right-6 text-white/50 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors z-50"
@@ -562,16 +588,14 @@ export const Portfolio: React.FC = () => {
                     <X size={32} />
                 </button>
                 
-                {/* Image Container */}
                 <div className="relative w-full h-full flex items-center justify-center p-4 md:p-12">
                      <img 
                         src={fullscreenImage} 
                         alt="Fullscreen" 
                         className="max-w-full max-h-full object-contain shadow-2xl drop-shadow-[0_0_50px_rgba(255,85,0,0.2)]"
-                        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking image
+                        onClick={(e) => e.stopPropagation()}
                     />
                     
-                    {/* Navigation Buttons */}
                     <button 
                         className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white/30 hover:text-brand-orange hover:bg-black/50 p-3 rounded-full transition-all"
                         onClick={handlePrevImage}
@@ -586,7 +610,6 @@ export const Portfolio: React.FC = () => {
                     </button>
                 </div>
 
-                {/* Caption / Counter */}
                 <div className="absolute bottom-8 left-0 right-0 text-center pointer-events-none">
                      <div className="inline-block bg-black/50 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-white/80 font-mono text-xs">
                         {(() => {
@@ -595,6 +618,45 @@ export const Portfolio: React.FC = () => {
                             return `${idx + 1} / ${all.length}`;
                         })()}
                      </div>
+                </div>
+            </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmId && (
+            <div 
+                className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
+                onClick={() => setDeleteConfirmId(null)}
+            >
+                <div 
+                    className="bg-white w-full max-w-md p-6 rounded-xl shadow-2xl border-l-4 border-red-500 transform transition-all scale-100"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="flex items-start gap-4">
+                        <div className="bg-red-50 p-3 rounded-full">
+                            <AlertTriangle className="text-red-500" size={24} />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">确认删除该项目？</h3>
+                            <p className="text-slate-600 text-sm leading-relaxed mb-6">
+                                确定要删除该项目吗？删除后无法撤销。
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button 
+                                    onClick={() => setDeleteConfirmId(null)}
+                                    className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+                                >
+                                    取消
+                                </button>
+                                <button 
+                                    onClick={executeDelete}
+                                    className="px-4 py-2 text-sm font-bold bg-red-500 text-white rounded hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all flex items-center gap-2"
+                                >
+                                    <Trash2 size={14} /> 确认删除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         )}

@@ -4,92 +4,19 @@ import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadius
 import { TechCard } from './ui/TechCard';
 import { Cpu, BrainCircuit, Paintbrush, Layers, Zap, PenTool, Edit2, Check, Target, ArrowRight as ArrowIcon } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { DEFAULT_MODULE_STATS, DEFAULT_SKILL_BEFORE, DEFAULT_SKILL_AFTER, DEFAULT_PRACTICAL_APPS, DEFAULT_FEATURES } from '../data/defaults';
 
 const ICON_MAP: Record<string, React.ElementType> = {
     Paintbrush, Layers, Zap, PenTool, Cpu, BrainCircuit
 };
 
-const INITIAL_MODULE_STATS = [
-  { 
-    name: '原画设计', 
-    en: 'CONCEPT ART',
-    icon: "Paintbrush",
-    percentage: 80, // Updated to 80% per image
-    color: 'bg-brand-orange',
-    description: 'AI 辅助生成底图、材质与光影细节。',
-    breakdown: 'AI生成 80% / 手绘修饰 20%'
-  },
-  { 
-    name: 'UI 界面设计', 
-    en: 'USER INTERFACE',
-    icon: "Layers",
-    percentage: 70, // Updated to 70% per request
-    color: 'bg-blue-500',
-    description: '图标资产批量生成，风格化界面布局快速迭代。',
-    breakdown: 'AI生成 60% / 设计师排版 40%'
-  },
-  { 
-    name: '动效与特效', 
-    en: 'VFX & MOTION',
-    icon: "Zap",
-    percentage: 50,
-    color: 'bg-green-500',
-    description: '粒子贴图生成，关键帧 AI 补帧，流体模拟辅助。',
-    breakdown: 'AI生成 50% / 引擎调整 50%'
-  },
-];
-
-const INITIAL_SKILL_BEFORE = [
-  { subject: '审美', value: 110, fullMark: 150 },
-  { subject: '创意', value: 110, fullMark: 150 },
-  { subject: '工具', value: 110, fullMark: 150 },
-  { subject: '技法', value: 110, fullMark: 150 },
-  { subject: '沟通', value: 110, fullMark: 150 },
-  { subject: '洞察', value: 110, fullMark: 150 },
-];
-
-const INITIAL_SKILL_AFTER = [
-  { subject: '审美', value: 150, fullMark: 150 }, // 顶格
-  { subject: '创意', value: 110, fullMark: 150 }, // 不变
-  { subject: '工具', value: 150, fullMark: 150 }, // 顶格
-  { subject: '技法', value: 60, fullMark: 150 },  // 变低
-  { subject: '沟通', value: 110, fullMark: 150 }, // 不变
-  { subject: '洞察', value: 110, fullMark: 150 }, // 不变
-];
-
-const INITIAL_PRACTICAL_APPS = [
-    'Midjourney 情绪板设计', 
-    'Stable Diffusion 纹理生成', 
-    'Nanobanana 图片编辑', // Updated per image
-    'Runway 动态分镜'
-];
-
-const INITIAL_FEATURES = [
-  {
-    icon: "PenTool",
-    title: '从执行者到鉴赏者',
-    desc: '重心从繁重的手工绘制转移到审美判断、风格筛选以及对生成资产的精修润色。'
-  },
-  {
-    icon: "Cpu",
-    title: '提示词工程 (Prompt)',
-    desc: '能够将抽象的艺术愿景转化为 AI 模型可理解的精确技术语言与参数组合。'
-  },
-  {
-    icon: "BrainCircuit",
-    title: '技术合成能力',
-    desc: '将 AI 产出无缝集成到引擎中，打通资产落地的“最后一公里”。' // Updated text removing specific engine names
-  }
-];
-
 export const AISection: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
-  // Updated keys to v3 to ensure new content is loaded
-  const [moduleStats, setModuleStats] = useLocalStorage('ai_stats_v3', INITIAL_MODULE_STATS);
-  const [skillBefore, setSkillBefore] = useLocalStorage('ai_skillBefore', INITIAL_SKILL_BEFORE);
-  const [skillAfter, setSkillAfter] = useLocalStorage('ai_skillAfter', INITIAL_SKILL_AFTER);
-  const [practicalApps, setPracticalApps] = useLocalStorage('ai_apps_v2', INITIAL_PRACTICAL_APPS);
-  const [features, setFeatures] = useLocalStorage('ai_features_v2', INITIAL_FEATURES);
+  const [moduleStats, setModuleStats] = useLocalStorage('ai_stats_v3', DEFAULT_MODULE_STATS);
+  const [skillBefore, setSkillBefore] = useLocalStorage('ai_skillBefore', DEFAULT_SKILL_BEFORE);
+  const [skillAfter, setSkillAfter] = useLocalStorage('ai_skillAfter', DEFAULT_SKILL_AFTER);
+  const [practicalApps, setPracticalApps] = useLocalStorage('ai_apps_v2', DEFAULT_PRACTICAL_APPS);
+  const [features, setFeatures] = useLocalStorage('ai_features_v2', DEFAULT_FEATURES);
 
   const handleUpdate = (index: number, field: string, value: string | number) => {
     const newStats = [...moduleStats];
@@ -116,22 +43,20 @@ export const AISection: React.FC = () => {
     setFeatures(newFeatures);
   };
 
-  const safeModuleStats = Array.isArray(moduleStats) ? moduleStats : INITIAL_MODULE_STATS;
-  const safeFeatures = Array.isArray(features) ? features : INITIAL_FEATURES;
-  const safePracticalApps = Array.isArray(practicalApps) ? practicalApps : INITIAL_PRACTICAL_APPS;
+  const safeModuleStats = Array.isArray(moduleStats) ? moduleStats : DEFAULT_MODULE_STATS;
+  const safeFeatures = Array.isArray(features) ? features : DEFAULT_FEATURES;
+  const safePracticalApps = Array.isArray(practicalApps) ? practicalApps : DEFAULT_PRACTICAL_APPS;
   
-  // Safe Chart Data Construction
   const safeSkillBefore = Array.isArray(skillBefore) 
     ? skillBefore.map(s => ({ ...s, subject: String(s.subject), value: Number(s.value) })) 
-    : INITIAL_SKILL_BEFORE;
+    : DEFAULT_SKILL_BEFORE;
 
   const safeSkillAfter = Array.isArray(skillAfter) 
     ? skillAfter.map(s => ({ ...s, subject: String(s.subject), value: Number(s.value) })) 
-    : INITIAL_SKILL_AFTER;
+    : DEFAULT_SKILL_AFTER;
 
   const averagePercentage = Math.round(safeModuleStats.reduce((acc, curr) => acc + (Number(curr.percentage) || 0), 0) / (safeModuleStats.length || 1));
 
-  // Helper
   const safeStr = (val: any) => typeof val === 'string' ? val : String(val || '');
 
   return (
@@ -160,7 +85,6 @@ export const AISection: React.FC = () => {
 
         <div className="flex flex-col gap-8">
             
-            {/* 1. AI Usage Stats (Full Width) */}
             <div>
                 <TechCard title="各模块 AI 使用占比">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-4">
@@ -208,7 +132,6 @@ export const AISection: React.FC = () => {
                                         </div>
                                     </div>
                                     
-                                    {/* Progress Bar */}
                                     <div className="h-3 w-full bg-slate-100 rounded-sm overflow-hidden relative skew-x-[-12deg] mb-4">
                                         <div className="absolute inset-0 z-10 flex justify-between px-1">
                                             {[...Array(10)].map((_, i) => (
@@ -223,7 +146,6 @@ export const AISection: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Description */}
                                     <div className="text-sm">
                                         {isEditing ? (
                                             <input 
@@ -237,7 +159,6 @@ export const AISection: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Breakdown */}
                                 <div className="mt-3">
                                     {isEditing ? (
                                          <input 
@@ -257,12 +178,9 @@ export const AISection: React.FC = () => {
                 </TechCard>
             </div>
 
-            {/* 2. Capability Model (Radar Charts & Insights) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left: Radar Charts Comparison */}
                 <TechCard title="能力素质模型演变" className="h-full flex flex-col">
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                            {/* Chart 1: Before AI */}
                         <div className="flex flex-col items-center">
                             <h5 className="font-bold text-slate-500 mb-2 text-sm uppercase tracking-wider">传统设计师模型</h5>
                             <div className="w-full h-[250px]">
@@ -299,12 +217,10 @@ export const AISection: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Arrow Indicator (Desktop) */}
                         <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-brand-orange bg-white rounded-full p-1 shadow-sm border border-brand-orange/20">
                             <ArrowIcon size={24} />
                         </div>
 
-                            {/* Chart 2: AI Era */}
                         <div className="flex flex-col items-center relative">
                             <h5 className="font-bold text-brand-orange mb-2 text-sm uppercase tracking-wider flex items-center gap-1">
                                 <Zap size={14} className="fill-brand-orange" /> AI 时代设计师模型
@@ -354,9 +270,7 @@ export const AISection: React.FC = () => {
                     )}
                 </TechCard>
 
-                {/* Right: New Era Model Insights */}
                 <div className="bg-slate-900 text-white p-6 clip-tech-inv h-full flex flex-col justify-center relative overflow-hidden">
-                    {/* Background Decoration */}
                     <div className="absolute top-0 right-0 p-32 bg-brand-orange/10 blur-[80px] rounded-full pointer-events-none"></div>
 
                     <h3 className="text-xl font-bold uppercase mb-8 border-b border-gray-700 pb-4 flex items-center gap-2">
@@ -401,7 +315,6 @@ export const AISection: React.FC = () => {
             </div>
         </div>
 
-        {/* Practical Application Banner */}
         <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
             {safePracticalApps.map((tool, i) => (
                 <div key={i} className="bg-white border border-slate-200 p-4 text-center font-bold text-slate-700 hover:border-brand-orange hover:text-brand-orange transition-colors cursor-default clip-tech shadow-sm flex items-center justify-center">

@@ -17,11 +17,11 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed: Inherit from Component and declare state properly
+// Fixed: Inherit from React.Component to ensure this.props is correctly typed
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = {
-    hasError: false
-  };
+  public state: ErrorBoundaryState = { hasError: false };
+  // Explicitly declare props to satisfy strict TypeScript checks
+  public declare props: Readonly<ErrorBoundaryProps>;
 
   static getDerivedStateFromError(error: any): ErrorBoundaryState {
     return { hasError: true };

@@ -3,22 +3,15 @@ import React, { useState } from 'react';
 import { AppSection } from '../types';
 import { ChevronDown, Edit2, Check, Type } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { DEFAULT_HERO } from '../data/defaults';
 
 interface HeroProps {
   onNavigate: (section: AppSection) => void;
 }
 
-const INITIAL_CONTENT = {
-    tag: '内部绝密 // Internal Confidential',
-    line1: '年终',
-    line2: '总结汇报',
-    subtitle: '摩西科技美术中心 // 2025',
-    titleSize: 'text-6xl md:text-8xl'
-};
-
 export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [content, setContent] = useLocalStorage('hero_content', INITIAL_CONTENT);
+  const [content, setContent] = useLocalStorage('hero_content', DEFAULT_HERO);
 
   const handleChange = (key: keyof typeof content, value: string) => {
     setContent(prev => ({ ...prev, [key]: value }));
@@ -26,12 +19,10 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
 
   const safeStr = (val: any) => typeof val === 'string' ? val : String(val || '');
   
-  // Ensure titleSize is a valid string for className
   const titleSizeClass = typeof content.titleSize === 'string' ? content.titleSize : 'text-6xl md:text-8xl';
 
   return (
     <div className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden bg-slate-900 text-white group/hero">
-      {/* Edit Controls */}
       <div className="absolute top-24 right-6 z-50 opacity-0 group-hover/hero:opacity-100 transition-opacity">
          <button
             onClick={() => setIsEditing(!isEditing)}
@@ -41,13 +32,11 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
          </button>
       </div>
 
-      {/* Abstract Background */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-brand-orange via-slate-900 to-black"></div>
           <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
       </div>
       
-      {/* Content */}
       <div className="z-10 text-center px-4 max-w-5xl w-full">
         <div className="mb-4 inline-block">
             {isEditing ? (
@@ -73,7 +62,7 @@ export const Hero: React.FC<HeroProps> = ({ onNavigate }) => {
                     />
                     <input
                         className={`bg-slate-800/50 text-transparent bg-clip-text bg-gradient-to-r from-brand-orange to-red-600 font-black italic tracking-tighter text-center outline-none border-b border-brand-orange ${titleSizeClass} w-full`}
-                        style={{ WebkitTextFillColor: 'inherit' }} // Override specific input styles
+                        style={{ WebkitTextFillColor: 'inherit' }} 
                         value={safeStr(content.line2)}
                         onChange={(e) => handleChange('line2', e.target.value)}
                     />
