@@ -1,13 +1,13 @@
 
-import React, { useState, DragEvent } from 'react';
+import React, { useState } from 'react';
 import { TechCard } from './ui/TechCard';
-import { Users, Zap, GraduationCap, ArrowRight, BookOpen, Lightbulb, Wrench, Briefcase, Edit2, Check, Wand2, RefreshCw, Upload, Layout, Plus, Trash2, Settings, AlertTriangle, CloudUpload, Loader2 } from 'lucide-react';
+import { Users, Zap, GraduationCap, ArrowRight, BookOpen, Lightbulb, Briefcase, Edit2, Check, Wand2, RefreshCw, Upload, Layout } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { refineText } from '../services/geminiService';
-import { DEFAULT_PIPELINE_STEPS, DEFAULT_CORE_FUNCTIONS, DEFAULT_ALLOCATION, DEFAULT_TOOLS } from '../data/defaults';
+import { DEFAULT_PIPELINE_STEPS, DEFAULT_CORE_FUNCTIONS, DEFAULT_ALLOCATION } from '../data/defaults';
 
 const ICON_MAP: Record<string, React.ElementType> = {
-    Users, Zap, GraduationCap, Briefcase, BookOpen, Lightbulb, Wrench, RefreshCw, Layout
+    Users, Zap, GraduationCap, Briefcase, BookOpen, Lightbulb
 };
 
 const compressImage = (file: File): Promise<string> => {
@@ -53,17 +53,8 @@ export const Talent: React.FC = () => {
   const [pipelineSteps, setPipelineSteps] = useLocalStorage('talent_pipeline_v2', DEFAULT_PIPELINE_STEPS);
   const [coreFunctions, setCoreFunctions] = useLocalStorage('talent_coreFunctions_v3', DEFAULT_CORE_FUNCTIONS);
   const [allocation, setAllocation] = useLocalStorage('talent_allocation_v4', DEFAULT_ALLOCATION);
-  const [tools, setTools] = useLocalStorage('talent_tools_v1', DEFAULT_TOOLS);
   
-  // State for delete confirmation modal
-  const [toolDeleteIndex, setToolDeleteIndex] = useState<number | null>(null);
-
-  // Updated refining state to support multiple sections
   const [refiningState, setRefiningState] = useState<{section: string, index: number, field: string} | null>(null);
-
-  // Drag and Drop State for Tools
-  const [dragTargetTool, setDragTargetTool] = useState<number | null>(null);
-  const [processingTool, setProcessingTool] = useState<number | null>(null);
 
   const handlePipelineUpdate = (index: number, field: string, value: string) => {
     const newSteps = [...pipelineSteps];
@@ -88,53 +79,15 @@ export const Talent: React.FC = () => {
       }
   };
 
-  const handleToolUpdate = (index: number, field: string, value: string) => {
-      const newTools = [...tools];
-      newTools[index] = { ...newTools[index], [field]: value };
-      setTools(newTools);
-  };
-
-  const handleToolImageUpload = async (e: React.ChangeEvent<HTMLInputElement> | FileList, index: number) => {
-      let file: File | null = null;
-      
-      if (e instanceof FileList) {
-          file = e[0];
-      } else if (e.target.files) {
-          file = e.target.files[0];
-      }
-
-      if (file) {
-          setProcessingTool(index);
-          const compressed = await compressImage(file);
-          handleToolUpdate(index, 'imageUrl', compressed);
-          setProcessingTool(null);
-      }
-  };
-
-  const addTool = () => {
-      setTools([...tools, { title: "新工具", desc: "请输入工具描述", imageUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1000" }]);
-  };
-
-  const confirmRemoveTool = (index: number) => {
-      setToolDeleteIndex(index);
-  };
-
-  const executeRemoveTool = () => {
-      if (toolDeleteIndex !== null) {
-          setTools(tools.filter((_, i) => i !== toolDeleteIndex));
-          setToolDeleteIndex(null);
-      }
-  };
-
-  const handleRefine = async (section: 'pipeline' | 'tool', index: number, field: string, currentValue: string, context: string) => {
+  const handleRefine = async (section: 'pipeline' | 'allocation', index: number, field: string, currentValue: string, context: string) => {
     if (!currentValue) return;
     setRefiningState({ section, index, field });
     const refined = await refineText(currentValue, context);
     
     if (section === 'pipeline') {
         handlePipelineUpdate(index, field, refined);
-    } else if (section === 'tool') {
-        handleToolUpdate(index, field, refined);
+    } else if (section === 'allocation') {
+        handleAllocationUpdate(field, refined);
     }
     
     setRefiningState(null);
@@ -144,32 +97,9 @@ export const Talent: React.FC = () => {
       return refiningState?.section === section && refiningState?.index === index && refiningState?.field === field;
   };
 
-  // Drag handlers for tools
-  const onToolDragEnterOver = (e: DragEvent, index: number) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragTargetTool(index);
-  };
-
-  const onToolDragLeave = (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragTargetTool(null);
-  };
-
-  const onToolDrop = (e: DragEvent, index: number) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragTargetTool(null);
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-          handleToolImageUpload(e.dataTransfer.files, index);
-      }
-  };
-
   const safePipelineSteps = Array.isArray(pipelineSteps) ? pipelineSteps : DEFAULT_PIPELINE_STEPS;
   const safeCoreFunctions = Array.isArray(coreFunctions) ? coreFunctions : DEFAULT_CORE_FUNCTIONS;
   const safeAllocation = allocation || DEFAULT_ALLOCATION;
-  const safeTools = Array.isArray(tools) ? tools : DEFAULT_TOOLS;
 
   const safeStr = (val: any) => {
       if (typeof val === 'string') return val;
@@ -196,6 +126,7 @@ export const Talent: React.FC = () => {
             </button>
         </div>
 
+        {/* PART 1: PIPELINE */}
         <div className="mb-12">
             <div className="flex items-center gap-4 mb-6">
                 <div className="h-8 w-1 bg-brand-orange"></div>
@@ -261,14 +192,6 @@ export const Talent: React.FC = () => {
                                             value={safeStr(step.stat)}
                                             onChange={(e) => handlePipelineUpdate(idx, 'stat', e.target.value)}
                                         />
-                                        <button 
-                                            onClick={() => handleRefine('pipeline', idx, 'stat', safeStr(step.stat), `人才招聘流程数据统计: ${step.title}`)}
-                                            className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-orange p-1"
-                                            disabled={isRefining('pipeline', idx, 'stat')}
-                                            title="AI 润色"
-                                        >
-                                            <Wand2 size={12} className={isRefining('pipeline', idx, 'stat') ? 'animate-spin' : ''} />
-                                        </button>
                                     </div>
                                 </div>
                             ) : (
@@ -287,6 +210,7 @@ export const Talent: React.FC = () => {
             </TechCard>
         </div>
 
+        {/* PART 2: CORE FUNCTIONS */}
         <div className="mb-12">
             <div className="flex items-center gap-4 mb-6">
                 <div className="h-8 w-1 bg-brand-orange"></div>
@@ -295,7 +219,7 @@ export const Talent: React.FC = () => {
                 </h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {safeCoreFunctions.map((func, idx) => {
                     const iconKey = typeof func.icon === 'string' ? func.icon : 'BookOpen';
                     const IconComponent = ICON_MAP[iconKey] || BookOpen;
@@ -335,152 +259,106 @@ export const Talent: React.FC = () => {
                     </TechCard>
                 )})}
             </div>
-
-            {/* INTEGRATED TOOLS SUB-SECTION */}
-            <div className="bg-slate-100/50 rounded-xl p-6 md:p-8 border border-slate-200">
-                <h4 className="text-xl font-bold text-slate-700 uppercase mb-6 flex items-center gap-3">
-                    <Wrench className="text-brand-orange" size={24} />
-                    自研效能工具展示 <span className="text-slate-400 text-xs font-normal normal-case">// Efficiency Tools Showcase</span>
-                </h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {safeTools.map((tool, idx) => {
-                        const isDragOver = dragTargetTool === idx;
-                        const isProcessing = processingTool === idx;
-
-                        return (
-                        <TechCard key={idx} className={`!p-0 overflow-hidden flex flex-col h-full bg-white shadow-sm transition-all ${isDragOver ? 'ring-2 ring-brand-orange ring-offset-2' : ''}`}>
-                            <div 
-                                className="relative h-48 group/img bg-slate-200 border-b border-slate-100 transition-colors"
-                                onDragEnter={(e) => onToolDragEnterOver(e, idx)}
-                                onDragOver={(e) => onToolDragEnterOver(e, idx)}
-                                onDragLeave={onToolDragLeave}
-                                onDrop={(e) => onToolDrop(e, idx)}
-                            >
-                                <img src={tool.imageUrl} className={`w-full h-full object-cover transition-opacity ${isDragOver || isProcessing ? 'opacity-50' : 'opacity-100'}`} alt={tool.title} />
-                                
-                                {isProcessing && (
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 z-20">
-                                        <Loader2 size={32} className="animate-spin text-brand-orange mb-2" />
-                                        <span className="text-xs font-bold text-brand-orange uppercase">Processing...</span>
-                                    </div>
-                                )}
-
-                                {isEditing && !isProcessing && (
-                                    <div className={`absolute inset-0 bg-black/50 flex flex-col items-center justify-center transition-opacity z-10 ${isDragOver ? 'opacity-100' : 'opacity-0 group-hover/img:opacity-100'}`}>
-                                        {isDragOver ? (
-                                            <div className="text-white flex flex-col items-center animate-bounce">
-                                                <CloudUpload size={32} />
-                                                <span className="text-xs font-bold mt-1">松开上传</span>
-                                            </div>
-                                        ) : (
-                                            <label className="bg-brand-orange text-white px-4 py-2 rounded font-bold cursor-pointer text-xs flex items-center gap-2 hover:bg-orange-600 shadow-lg transform hover:scale-105 transition-all">
-                                                <Upload size={14} /> 更换截图
-                                                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleToolImageUpload(e, idx)} />
-                                            </label>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                            <div className="p-6 flex-1 flex flex-col">
-                                {isEditing ? (
-                                    <div className="flex-1 space-y-3">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <input 
-                                                className="text-lg font-bold border-b border-slate-300 w-full outline-none focus:border-brand-orange bg-transparent"
-                                                value={safeStr(tool.title)}
-                                                onChange={(e) => handleToolUpdate(idx, 'title', e.target.value)}
-                                                placeholder="工具名称"
-                                            />
-                                            <button 
-                                                onClick={() => confirmRemoveTool(idx)} 
-                                                className="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded transition-colors"
-                                                title="删除该卡片"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                        <div className="relative">
-                                            <textarea 
-                                                className="w-full text-sm text-slate-600 border rounded p-2 h-24 bg-slate-50 outline-none focus:border-brand-orange resize-none pr-8"
-                                                value={safeStr(tool.desc)}
-                                                onChange={(e) => handleToolUpdate(idx, 'desc', e.target.value)}
-                                                placeholder="工具功能描述..."
-                                            />
-                                            <button 
-                                                onClick={() => handleRefine('tool', idx, 'desc', safeStr(tool.desc), `效率工具描述: ${tool.title}`)}
-                                                className="absolute right-2 bottom-2 text-slate-300 hover:text-brand-orange p-1 hover:bg-slate-200 rounded transition-colors"
-                                                disabled={isRefining('tool', idx, 'desc')}
-                                                title="AI 润色文案"
-                                            >
-                                                <Wand2 size={14} className={isRefining('tool', idx, 'desc') ? 'animate-spin' : ''} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex-1">
-                                        <h4 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
-                                            <Settings size={18} className="text-brand-orange" />
-                                            {safeStr(tool.title)}
-                                        </h4>
-                                        <p className="text-sm text-slate-600 leading-relaxed">{safeStr(tool.desc)}</p>
-                                    </div>
-                                )}
-                            </div>
-                        </TechCard>
-                    )})}
-                    
-                    {isEditing && (
-                        <button 
-                            onClick={addTool}
-                            className="h-full border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:text-brand-orange hover:border-brand-orange hover:bg-brand-orange/5 transition-all group min-h-[300px]"
-                        >
-                            <Plus size={48} className="mb-2 group-hover:scale-110 transition-transform" />
-                            <span className="font-bold text-sm uppercase tracking-wider">添加新工具</span>
-                        </button>
-                    )}
-                </div>
-            </div>
         </div>
 
-        {/* Delete Confirmation Modal for Tools */}
-        {toolDeleteIndex !== null && (
-            <div 
-                className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
-                onClick={() => setToolDeleteIndex(null)}
-            >
-                <div 
-                    className="bg-white w-full max-w-md p-6 rounded-xl shadow-2xl border-l-4 border-red-500 transform transition-all scale-100"
-                    onClick={e => e.stopPropagation()}
-                >
-                    <div className="flex items-start gap-4">
-                        <div className="bg-red-50 p-3 rounded-full">
-                            <AlertTriangle className="text-red-500" size={24} />
-                        </div>
-                        <div className="flex-1">
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">确认删除该工具卡片？</h3>
-                            <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                                此操作将移除 "{safeTools[toolDeleteIndex]?.title}" 的所有内容。
-                            </p>
-                            <div className="flex justify-end gap-3">
-                                <button 
-                                    onClick={() => setToolDeleteIndex(null)}
-                                    className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
-                                >
-                                    取消
-                                </button>
-                                <button 
-                                    onClick={executeRemoveTool}
-                                    className="px-4 py-2 text-sm font-bold bg-red-500 text-white rounded hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all flex items-center gap-2"
-                                >
-                                    <Trash2 size={14} /> 确认删除
-                                </button>
+        {/* PART 3: ALLOCATION */}
+        <div className="mb-12">
+            <div className="flex items-center gap-4 mb-6">
+                <div className="h-8 w-1 bg-brand-orange"></div>
+                <h3 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">
+                    第三部分：资源优化配置 <span className="text-slate-400 text-sm font-normal normal-case ml-2">// Resource Optimization</span>
+                </h3>
+            </div>
+
+            <TechCard className="!p-0 overflow-hidden border-2 border-brand-orange/20">
+                <div className="flex flex-col lg:flex-row">
+                    <div className="flex-1 p-8 lg:p-12 bg-white relative">
+                        <div className="absolute top-0 left-0 w-2 h-full bg-brand-orange"></div>
+                        
+                        {isEditing ? (
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">主标题</label>
+                                    <input 
+                                        className="w-full text-4xl font-black italic tracking-tighter text-slate-900 border-b-2 border-brand-orange outline-none pb-2 bg-transparent"
+                                        value={safeStr(safeAllocation.title)}
+                                        onChange={(e) => handleAllocationUpdate('title', e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">副标题</label>
+                                    <input 
+                                        className="w-full text-slate-500 font-mono border-b border-slate-200 outline-none pb-1 bg-transparent"
+                                        value={safeStr(safeAllocation.subtitle)}
+                                        onChange={(e) => handleAllocationUpdate('subtitle', e.target.value)}
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">详细描述</label>
+                                    <textarea 
+                                        className="w-full h-40 text-slate-600 leading-relaxed text-lg border rounded p-4 bg-slate-50 outline-none focus:border-brand-orange pr-12"
+                                        value={safeStr(safeAllocation.desc)}
+                                        onChange={(e) => handleAllocationUpdate('desc', e.target.value)}
+                                    />
+                                    <button 
+                                        onClick={() => handleRefine('allocation', 0, 'desc', safeStr(safeAllocation.desc), "资源优化配置部分的深度文案")}
+                                        className="absolute right-3 bottom-3 text-brand-orange hover:bg-brand-orange/10 p-2 rounded-full transition-colors"
+                                        disabled={isRefining('allocation', 0, 'desc')}
+                                    >
+                                        <Wand2 className={isRefining('allocation', 0, 'desc') ? 'animate-spin' : ''} />
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="h-full flex flex-col justify-center">
+                                <h4 className="text-4xl md:text-5xl font-black italic tracking-tighter text-slate-900 mb-2 uppercase">
+                                    {safeStr(safeAllocation.title)}
+                                </h4>
+                                <p className="text-brand-orange font-mono text-sm tracking-[0.3em] uppercase mb-8">
+                                    {safeStr(safeAllocation.subtitle)}
+                                </p>
+                                <div className="space-y-4">
+                                    <p className="text-slate-600 text-lg md:text-xl leading-relaxed font-medium">
+                                        {safeStr(safeAllocation.desc)}
+                                    </p>
+                                    <div className="flex items-center gap-3 text-slate-400 font-bold text-xs uppercase italic tracking-widest pt-4">
+                                        <div className="h-px flex-1 bg-slate-200"></div>
+                                        适合才能双赢
+                                        <div className="h-px flex-1 bg-slate-200"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="w-full lg:w-[45%] h-64 lg:h-auto relative group overflow-hidden bg-slate-900">
+                        <img 
+                            src={safeAllocation.imageUrl} 
+                            className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-1000"
+                            alt="Allocation Visual"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent pointer-events-none"></div>
+                        
+                        {isEditing && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity group-hover:opacity-100 opacity-0">
+                                <label className="bg-white text-brand-orange px-6 py-3 rounded font-black uppercase text-sm flex items-center gap-3 cursor-pointer shadow-2xl hover:scale-105 transition-transform">
+                                    <Upload size={20} /> 更换背景图
+                                    <input type="file" className="hidden" accept="image/*" onChange={handleAllocationImageUpload} />
+                                </label>
+                            </div>
+                        )}
+                        
+                        {/* Decorative HUD Elements */}
+                        <div className="absolute bottom-4 right-4 pointer-events-none">
+                            <div className="border border-white/20 p-2 font-mono text-[8px] text-white/40 uppercase tracking-tighter">
+                                Target_Match_Score: 98.4%<br/>
+                                Efficiency_Gain: +32%
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        )}
+            </TechCard>
+        </div>
     </div>
   );
 };

@@ -15,7 +15,7 @@ export const DEFAULT_PROJECTS: Project[] = [
   {
     id: 'zhen-infirmary',
     name: '阿珍医务室 (ZHEN\'S INFIRMARY)',
-    description: '这是一个充满生活气息与叙事细节的独立场景设计。灵感来源于九龙城寨与赛博朋克的结合。重点打磨了医疗器械的做旧材质与环境光遮蔽（AO）效果，通过散落的药瓶、贴纸和暖色台灯营造出有人居住的温情与外界冷酷科技的对比。采用了 UE5 Lumen 进行实时光照渲染。',
+    description: '这是一个充满生活气息与叙事细节的独立场景 design。灵感来源于九龙城寨与赛博朋克的结合。重点打磨了医疗器械的做旧材质与环境光遮蔽（AO）效果，通过散落的药瓶、贴纸和暖色台灯营造出有人居住的温情与外界冷酷科技的对比。采用了 UE5 Lumen 进行实时光照渲染。',
     descriptionSize: 'text-sm',
     imageUrl: 'https://images.unsplash.com/photo-1519638831568-d9897f54ed69?auto=format&fit=crop&q=80&w=1000',
     gallery: [
@@ -104,6 +104,8 @@ export const DEFAULT_TOOLS = [
 ];
 
 // --- AI SECTION ---
+export const DEFAULT_AI_INTRO = "AI 已经从 “降本增效的工具” 变成了 “能力放大器”，甚至是行业的准入门槛。早期大家觉得 AI 是 “偷懒神器”，能省时间就好，但现在玩家口味越来越刁，一眼就能看出 “AI 味”。当所有人都用 AI 之后，“用不用 AI” 的成本差就不存在了，竞争的焦点就从 “谁能用 AI” 变成了 “谁能把 AI 用得更透”。AI 是工具，但工具的上限，永远是使用者的认知和判断力。";
+
 export const DEFAULT_MODULE_STATS = [
   { 
     name: '原画设计', 
