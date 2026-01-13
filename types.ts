@@ -5,6 +5,8 @@ export interface Project {
   description: string;
   descriptionSize?: string; // 'text-sm', 'text-base', 'text-lg', 'text-xl'
   imageUrl: string;
+  videoUrl?: string; // Main hero video
+  videoGallery?: string[]; // Additional video assets
   gallery?: string[];
 }
 
